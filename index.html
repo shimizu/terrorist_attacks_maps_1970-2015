@@ -1,78 +1,161 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset='utf-8' />
-    <title>テロ発生箇所マップ(1970-2015)</title>
-    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js'></script>
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css' rel='stylesheet' />
-    <style>
-       html, body { margin:0; padding:0; width: 100%;height: 100%;}
-        #header{ background-color: black;}
-        #header h1{ color:white; display: inline}
-        #header a{ color:#666; }
-        
-        #map { position:absolute; top:40px; bottom:0; width:100%; }
-    </style>
+<meta charset='utf-8' />
+<title>テロ発生箇所マップ(1970-2015)</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css' rel='stylesheet' />
+<style>
+html, body { margin:0; padding:0; width: 100%;height: 100%;}
+
+#header{ background-color: black;}
+#header h1{ color:white; display: inline}
+#header a{ color:#666; }
+ 
+#map { position:absolute; top:40px; bottom:0; width:100%; }
+
+.map-overlay {
+    font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    position: absolute;
+    width: 25%;
+    top: 40px;
+    left: 0;
+    padding: 10px;
+}
+
+.map-overlay .map-overlay-inner {
+    background-color: #fff;
+    box-shadow:0 1px 2px rgba(0, 0, 0, 0.20);
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.map-overlay h2 {
+    line-height: 24px;
+    display: block;
+    margin: 0 0 10px;
+}
+
+.map-overlay .legend .bar {
+    height: 10px;
+    width: 100%;
+    background: linear-gradient(to right, #FCA107, #7F3121);
+}
+
+.map-overlay input {
+    background-color: transparent;
+    display: inline-block;
+    width: 100%;
+    position: relative;
+    margin: 0;
+    cursor: ew-resize;
+}
+</style>
 </head>
 <body>
 <div id="header"><h1>Terrorist Attacks 1970 - 2015</h1> <a href="https://shimz.me">@_shimizu</a></div>
 <div id='map'></div>
+
+<div class='map-overlay top'>
+    <div class='map-overlay-inner'>
+        <h2>Filter: <span id="year">1970〜2015</span></h2>
+        <input id='slider' type='range' min='1969' max='2016' step='1' value='0'  list="yearlist"/>
+        <datalist id="yearlist">
+        <option value="1970">1970</option>
+        <option value="1980">1980</option>
+        <option value="1990">1990</option>
+        <option value="2000">2000</option>
+        <option value="2010">2010</option>
+        <option value="2015">2015</option>
+        </datalist>
+
+    </div>
+</div>
+
 <script>
-mapboxgl.accessToken = 'pk.eyJ1Ijoic2hpbWl6dSIsImEiOiI0cl85c2pNIn0.RefZMaOzNn-IistVe-Zcnw';
-var map = new mapboxgl.Map({
-    container: 'map', // container id
-    style: 'mapbox://styles/mapbox/light-v9', //stylesheet location
-    center: [0, 0], // starting position
-    zoom: 0 // starting zoom
-});
-map.on('load', function () {
-  map.addSource('terrorgeojson', {
-    tiles: ['https://shimizu.github.io/terrorist_attacks_maps_1970-2015/terror/{z}/{x}/{y}.mvt'],
-    attribution: "<a target='_blank' href='https://www.start.umd.edu/gtd/'>Global Terrorism Database (GTD)</a>",
-    type: 'vector', maxzoom: 24
-  });
+!(function(){
+    "use strict";
 
-  map.addLayer({
-    'id': 'terror-point', 'type': 'circle',
-    'source': 'terrorgeojson', 'source-layer': 'terrorgeojson',
-    'minzoom': 0, 'maxzoom': 24,
-    'paint': {
-      'circle-color': '#ffcccc',
-      'circle-radius': {'stops': [[10, 6], [14, 2]]},
-      'circle-stroke-width': 2,
-      'circle-stroke-color': '#ff0000'
-    }
-  });
-});
-
-map.on('click', function(e) {
-    var features = map.queryRenderedFeatures(e.point, {});
-    if (!features.length) return;
-
-    var circle = features.filter(function(f){
-        return !f.id && f.id != 0;
+    mapboxgl.accessToken = 'pk.eyJ1Ijoic2hpbWl6dSIsImEiOiJjajNsYW5qN2owMDQxMnducnRpdnZ3MW45In0.Sc-wkWbKtTc_wEk7AeuHxw';
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/light-v9',
+        center: [0, 0],
+        zoom: 0
     });
+
+    map.on('load', function () {
+        map.addSource('terrorgeojson', {
+            tiles: ['https://shimizu.github.io/terrorist_attacks_maps_1970-2015/terror/{z}/{x}/{y}.mvt'],
+            attribution: "<a target='_blank' href='https://www.start.umd.edu/gtd/'>Global Terrorism Database (GTD)</a>",
+            type: 'vector', maxzoom: 24
+        });
     
-    circle.forEach(function(f){
-        if (!f.properties) return ;
-        //console.log(f)
-        var p = f.properties;
-        var html = "<table>";
-        html += "<tr><th>" + p.iyear+"/"+p.imonth+"/"+p.iday + "</th></tr>";
-        html += "<tr><th>City</th><td>" + p.city + "</td></tr>";
-        html += "<tr><th>Type</th><td>" + p.attacktype1_txt + "</td></tr>";
-        html += "<tr><th>Weapon</th><td>" + p.weapdetail + "</td></tr>";        
-        html += "<tr><th>Target</th><td>" + p.targtype1_txt + "</td></tr>";        
-        html += "</table>";
-    var popup = new mapboxgl.Popup()
-      .setLngLat(map.unproject(e.point))
-      .setHTML(html)
-      .addTo(map);        
-
+        map.addLayer({
+            'id': 'terror-point', 'type': 'circle',
+            'source': 'terrorgeojson', 'source-layer': 'terrorgeojson',
+            'minzoom': 0, 'maxzoom': 24,
+            'paint': {
+                'circle-color': '#ffcccc',
+                'circle-radius': {
+                      'base': 1.75,
+                      'stops': [[12, 2], [22, 180]]
+                },
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ff0000'
+            }
+        });
     });
+
+    document.getElementById('slider').addEventListener('input', function(e) {
+        var year = +e.target.value;
+        var filters;
+        if (year > 1969 && year < 2016){
+            filters = ['==', 'iyear', year];
+            map.setFilter('terror-point', filters);
+            document.getElementById('year').textContent = year;        
+        }else{
+            filters = ['>=', 'iyear', 1970];
+            map.setFilter('terror-point', filters);
+            document.getElementById('year').textContent = "1970〜2015";                
+        }
+    });
+
+
+    map.on('click', function(e) {
+        var features = map.queryRenderedFeatures(e.point, {});
+        if (!features.length) return;
+        
+        var circle = features.filter(function(f){
+            return !f.id && f.id !== 0;
+        });
+        
+        circle.forEach(function(f){
+            if (!f.properties) return ;
+            //console.log(f)
+            var p = f.properties;
+            var html = "<table>";
+            html += "<tr><th>" + p.iyear+"/"+p.imonth+"/"+p.iday + "</th></tr>";
+            html += "<tr><th>City</th><td>" + p.city + "</td></tr>";
+            html += "<tr><th>Type</th><td>" + p.attacktype1_txt + "</td></tr>";
+            html += "<tr><th>Weapon</th><td>" + p.weapdetail + "</td></tr>";        
+            html += "<tr><th>Target</th><td>" + p.targtype1_txt + "</td></tr>";        
+            html += "</table>";
+        
+        new mapboxgl.Popup()
+          .setLngLat(map.unproject(e.point))
+          .setHTML(html)
+          .addTo(map);        
+    
+        });
   
-});
+    });
+
+}());
+    
+
 
 </script>
 
