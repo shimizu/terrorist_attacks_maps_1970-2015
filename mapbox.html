@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>テロ発生箇所マップ(1970-2015)</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+       html, body { margin:0; padding:0; width: 100%;height: 100%;}
+        #header{ background-color: black;}
+        #header h1{ color:white; display: inline}
+        #header a{ color:#666; }
+        
+        #map { position:absolute; top:40px; bottom:0; width:100%; }
+    </style>
+</head>
+<body>
+<div id="header"><h1>Terrorist Attacks 1970 - 2015</h1> <a href="https://shimz.me">@_shimizu</a></div>
+<div id='map'></div>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1Ijoic2hpbWl6dSIsImEiOiI0cl85c2pNIn0.RefZMaOzNn-IistVe-Zcnw';
+var map = new mapboxgl.Map({
+    container: 'map', // container id
+    style: 'mapbox://styles/mapbox/light-v9', //stylesheet location
+    center: [0, 0], // starting position
+    zoom: 0 // starting zoom
+});
+map.on('load', function () {
+  map.addSource('terrorgeojson', {
+    tiles: ['http://localhost:4277/terror/{z}/{x}/{y}.mvt'],
+    attribution: "<a target='_blank' href='https://www.start.umd.edu/gtd/'>Global Terrorism Database (GTD)</a>",
+    type: 'vector', maxzoom: 24
+  });
+
+  map.addLayer({
+    'id': 'terror-point', 'type': 'circle',
+    'source': 'terrorgeojson', 'source-layer': 'terrorgeojson',
+    'minzoom': 0, 'maxzoom': 24,
+    'paint': {
+      'circle-color': '#ffcccc',
+      'circle-radius': {'stops': [[10, 6], [14, 2]]},
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ff0000'
+    }
+  });
+});
+
+map.on('click', function(e) {
+    var features = map.queryRenderedFeatures(e.point, {});
+    if (!features.length) return;
+
+    var circle = features.filter(function(f){
+        return !f.id && f.id != 0;
+    });
+    
+    circle.forEach(function(f){
+        if (!f.properties) return ;
+        //console.log(f)
+        var p = f.properties;
+        var html = "<table>";
+        html += "<tr><th>" + p.iyear+"/"+p.imonth+"/"+p.iday + "</th></tr>";
+        html += "<tr><th>City</th><td>" + p.city + "</td></tr>";
+        html += "<tr><th>Type</th><td>" + p.attacktype1_txt + "</td></tr>";
+        html += "<tr><th>Weapon</th><td>" + p.weapdetail + "</td></tr>";        
+        html += "<tr><th>Target</th><td>" + p.targtype1_txt + "</td></tr>";        
+        html += "</table>";
+    var popup = new mapboxgl.Popup()
+      .setLngLat(map.unproject(e.point))
+      .setHTML(html)
+      .addTo(map);        
+
+    });
+  
+});
+
+</script>
+
+</body>
+</html>
