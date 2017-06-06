@@ -28,7 +28,7 @@ var map = new mapboxgl.Map({
 });
 map.on('load', function () {
   map.addSource('terrorgeojson', {
-    tiles: ['http://localhost:4277/terror/{z}/{x}/{y}.mvt'],
+    tiles: ['https://shimizu.github.io/terrorist_attacks_maps_1970-2015/terror/{z}/{x}/{y}.mvt'],
     attribution: "<a target='_blank' href='https://www.start.umd.edu/gtd/'>Global Terrorism Database (GTD)</a>",
     type: 'vector', maxzoom: 24
   });
